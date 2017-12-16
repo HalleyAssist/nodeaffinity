@@ -87,7 +87,18 @@ void setAffinity(const FunctionCallbackInfo<Value>& args) {
     isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Invalid argument")));
   }
 
-  long ulCpuMask = args[0]->NumberValue();
+  long processId, ulCpuMask;
+
+  if (args.Length() == 2)
+  {
+    processId = args[0]->NumberValue();
+    ulCpuMask = args[1]->NumberValue();
+  }
+  else if (args.Length() == 1)
+  {
+    processId = 0;
+    ulCpuMask = args[0]->NumberValue();
+  }
 
 #if V8_OS_POSIX && !V8_OS_MACOSX
   pid_t p = 0;
@@ -116,7 +127,14 @@ void setAffinity(const FunctionCallbackInfo<Value>& args) {
   DWORD_PTR dwpProcAffinityMask = ulCpuMask;
 
   // Obtain a usable handle of the current process
-  hCurrentProc = GetCurrentProcess();
+  if (processId == 0)
+  {
+    hCurrentProc = GetCurrentProcess();    
+  }
+  else
+  {
+    hCurrentProc = OpenProcess(PROCESS_ALL_ACCESS, true, processId);
+  }
 
   // Get the old affinity mask
   BOOL bRet = SetProcessAffinityMask(hCurrentProc, dwpProcAffinityMask);
