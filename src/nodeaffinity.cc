@@ -29,11 +29,16 @@ void getAffinity(const FunctionCallbackInfo<Value>& args) {
   Isolate* isolate = Isolate::GetCurrent();
   HandleScope scope(isolate);
 
-  if (args.Length() > 0) {
+  if (args.Length() > 1) {
     isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Invalid number of arguments")));
   }
 
+  long processId = 0;
   long ulCpuMask = -1;
+
+  if (args.Length() == 1) {
+    processId = args[0]->NumberValue();
+  }
 
 #if V8_OS_POSIX && !V8_OS_MACOSX
   pid_t p = 0;
@@ -61,7 +66,14 @@ if (ret != -1)
   DWORD_PTR dwpSysAffinityMask, dwpProcAffinityMask;
 
   // Obtain a usable handle of the current process
-  hCurrentProc = GetCurrentProcess();
+  if (processId == 0)
+  {
+    hCurrentProc = GetCurrentProcess();    
+  }
+  else
+  {
+    hCurrentProc = OpenProcess(PROCESS_ALL_ACCESS, true, processId);
+  }
   DuplicateHandle(hCurrentProc, hCurrentProc, hCurrentProc,
                   &hDupCurrentProc, 0, FALSE, DUPLICATE_SAME_ACCESS);
 
